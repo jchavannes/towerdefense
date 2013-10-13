@@ -2,26 +2,40 @@
 <head>
 <style type="text/css">
 .board {
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -o-user-select: none;
+    user-select: none;
     display: inline-block;
     border: 1px solid #000;
     position: relative;
+}
+.control {
+    display: inline-block;
+    vertical-align: top;
 }
 .col {
     display: inline-block;
     position: relative;
     border: 1px solid #000;
-    width: 20px;
-    height: 20px;
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+}
+.col.selected {
+    border-color: rgba(255,255,0,1);
+    color: rgba(255,255,0,1);
 }
 .spawn {
     position: absolute;
-    width: 20px;
-    height: 18px;
-    padding-top: 2px;
+    width: 25px;
+    height: 21px;
+    padding-top: 4px;
     text-align: center;
     font-weight: bold;
     font-family: sans-serif;
-    font-size: 12px;
+    font-size: 10px;
 }
 .spawn.creep {
     background: rgba(255,0,0,0.5);
@@ -33,6 +47,7 @@
     background: rgba(0,255,0,0.5);
 }
 .shot {
+    pointer-events: none
     font-family: monospace;
     font-weight: bold;
     font-size: 18px;
@@ -53,8 +68,8 @@ $(function() {
     var boardNumRows = 30;
     var boardNumCols = 13;
 
-    $('body').append(function() {
-        var board = "<div class='board'>";
+    $('.board').append(function() {
+        var board = "";
         for (var rowNum = 1; rowNum <= boardNumRows; rowNum++) {
             board += "<div class='row'>";
             for (var colNum = 1; colNum <= boardNumCols; colNum++) {
@@ -62,8 +77,30 @@ $(function() {
             }
             board += "</div>";
         }
-        board += "</div>";
         return board;
+    });
+    $('.col').click(function(e) {
+        if (!e.shiftKey) {
+            $('.col').removeClass('selected');
+        }
+        if ($(this).hasClass('selected')) {
+            $(this).removeClass('selected');
+        }
+        else {
+            $(this).addClass('selected');
+        }
+    });
+    $('#addTower').click(function() {
+        var $cols = $('.col.selected');
+        $cols.each(function() {
+            $col = $(this);
+            var rowId = $('.row').index($col.parents('.row'));
+            var colId = $('.col').index($col) - (rowId * boardNumCols);
+            var cords = {x:colId + 1, y:rowId + 1};
+            if (Board.checkCellEmpty(cords)) {
+                Board.addTower(cords);
+            }
+        });
     });
 
     var shot;
@@ -84,9 +121,10 @@ $(function() {
             this.setPosition(true);
         };
         shot.prototype.convertToPos = function(cords) {
+            var cellSize = 25;
             return {
-                top: cords.y * 22 - 10,
-                left: cords.x * 22 - 10
+                top: cords.y * (cellSize + 2) - 10,
+                left: cords.x * (cellSize + 2) - 10
             };
         };
         shot.prototype.setPosition = function(noAnimate) {
@@ -135,22 +173,46 @@ $(function() {
     spawn.prototype.getClassName = function() {return "spawn";};
     spawn.prototype.getCellText = function() {return "";};
     spawn.prototype.setPosition = function(cords) {
-        this.getCell().html("");
+        var $cell = this.getCell();
+        var hasSelected = false;
+        $cell.html("");
+        if ($cell.hasClass('selected')) {
+            hasSelected = true;
+            $cell.removeClass('selected');
+        }
         this.cords = cords;
-        this.getCell().html(this.getCellHtml());
+        $cell = this.getCell();
+        $cell.html(this.getCellHtml());
+        if ($cell.hasClass('selected')) {
+            $cell.removeClass('selected');
+        }
+        if (hasSelected) {
+            $cell.addClass('selected');
+        }
+    };
+    spawn.prototype.remove = function() {
+        var $cell = this.getCell();
+        $cell.html("");
+        $cell.removeClass('selected');
     };
 
-    var creep = function() {
-        this.health = 100;
-        spawn.apply(this, arguments);
+    var creep = function(cords, health) {
+        this.health = health;
+        spawn.apply(this, [cords]);
     };
     creep.prototype = new spawn();
     creep.prototype.getClassName = function() {return "creep";};
-    creep.prototype.getCellText = function() {return this.health;};
+    creep.prototype.getCellText = function() {
+        return parseInt(this.health);
+    };
 
-    var tower = function() {spawn.apply(this, arguments);};
+    var tower = function() {
+        this.level = 1;
+        spawn.apply(this, arguments);
+    };
     tower.prototype = new spawn();
     tower.prototype.getClassName = function() {return "tower";};
+    tower.prototype.getCellText = function() {return this.level;};
 
     var base = function() {spawn.apply(this, arguments);};
     base.prototype = new spawn();
@@ -191,7 +253,7 @@ $(function() {
             return 0;
         }
         else if (this.parent == null) {
-            return 1000;
+            return 10000;
         }
         else {
             return this.parent.getDistance() + 1;
@@ -220,18 +282,22 @@ $(function() {
         Bases: [],
         SpawnPoints: [],
         Shots: [],
+        resetShortestPaths: true,
+        currentLevel: 1,
         addTower: function(cords) {
             if (!this.checkCellEmpty(cords)) {
                 return false;
             }
             this.Towers.push(new tower(cords));
+            this.resetShortestPaths = true;
             return true;
         },
         addCreep: function(cords) {
             if (!this.checkCellNotBlocked(cords)) {
                 return false;
             }
-            this.Creeps.push(new creep(cords));
+            var newCreep = new creep(cords, this.currentLevel);
+            this.Creeps.push(newCreep);
             return true;
         },
         addBase: function(cords) {
@@ -299,6 +365,9 @@ $(function() {
             for (i = 0; i < this.SpawnPoints.length; i++) {
                 cells.push(this.SpawnPoints[i].cords);
             }
+            for (i = 0; i < this.Creeps.length; i++) {
+                cells.push(this.Creeps[i].cords);
+            }
             return cells;
         },
         getAllTowerCells: function() {
@@ -352,19 +421,27 @@ $(function() {
                 }
             }
         },
-        creepsRemaining: 50,
+        getShortestPaths: function() {
+            if (this.resetShortestPaths) {
+                this.setShortestPaths();
+                this.resetShortestPaths = false;
+            }
+            return this.openCells;
+        },
+        creepsRemaining: 0,
         lives: 50,
         doMove: function() {
+            var shortestPaths = this.getShortestPaths();
             for (var i = 0; i < this.Creeps.length; i++) {
-                var nextMove = this.Creeps[i].findNextMove(this.openCells);
+                var nextMove = this.Creeps[i].findNextMove(shortestPaths);
                 if (this.checkIsBase(nextMove)) {
                     this.lives--;
                     console.log("Life lost. " + this.lives + " lives left.");
-                    this.Creeps[i].getCell().html("");
+                    this.Creeps[i].remove();
                     this.Creeps.splice(i--,1);
                 }
                 else if (this.Creeps[i].health <= 0) {
-                    this.Creeps[i].getCell().html("");
+                    this.Creeps[i].remove();
                     this.Creeps.splice(i--,1);
                 }
                 else {
@@ -404,7 +481,7 @@ $(function() {
                     }
                 }
                 if (toAttack != null) {
-                    toAttack.creep.health -= 5;
+                    toAttack.creep.health -= this.Towers[i].level;
                     Board.addShot(this.Towers[i].cords, toAttack.creep.cords);
                 }
             }
@@ -423,50 +500,18 @@ $(function() {
             var distanceX = Math.abs(cords1.x - cords2.x);
             var distanceY = Math.abs(cords1.y - cords2.y);
             return Math.sqrt(Math.pow(distanceX, 2) + Math.pow(distanceY, 2));
+        },
+        nextLevel: function() {
+            this.currentLevel++;
+            this.creepsRemaining = 15;
         }
     };
 
     Board.addSpawnPoint({x:7, y: 1});
     Board.addBase({x:7, y: 30});
 
-    Board.addTower({x:1, y:10});
-    Board.addTower({x:2, y:10});
-    Board.addTower({x:3, y:10});
-    Board.addTower({x:4, y:10});
-    Board.addTower({x:5, y:10});
-    Board.addTower({x:6, y:10});
-    Board.addTower({x:7, y:10});
-    Board.addTower({x:8, y:10});
-    Board.addTower({x:9, y:10});
-    Board.addTower({x:10, y:10});
-    Board.addTower({x:11, y:10});
-
-    Board.addTower({x:3, y:12});
-    Board.addTower({x:4, y:12});
-    Board.addTower({x:5, y:12});
-    Board.addTower({x:6, y:12});
-    Board.addTower({x:7, y:12});
-    Board.addTower({x:8, y:12});
-    Board.addTower({x:9, y:12});
-    Board.addTower({x:10, y:12});
-    Board.addTower({x:11, y:12});
-    Board.addTower({x:12, y:12});
-    Board.addTower({x:13, y:12});
-
-    Board.addTower({x:1, y:14});
-    Board.addTower({x:2, y:14});
-    Board.addTower({x:3, y:14});
-    Board.addTower({x:4, y:14});
-    Board.addTower({x:5, y:14});
-    Board.addTower({x:6, y:14});
-    Board.addTower({x:7, y:14});
-    Board.addTower({x:8, y:14});
-    Board.addTower({x:9, y:14});
-    Board.addTower({x:10, y:14});
-    Board.addTower({x:11, y:14});
-
-    Board.setShortestPaths();
-
+    Board.creepsRemaining = 15;
+    setInterval(function() {Board.nextLevel();}, 10000);
     setInterval(function() {Board.doMove();}, 400);
     setInterval(function() {Board.doAttack();}, 1000);
     setInterval(function() {Board.moveShots();}, 500);
@@ -474,5 +519,10 @@ $(function() {
 });
 </script>
 </head>
-<body></body>
+<body>
+<div class='board'></div>
+<div class='control'>
+    <input type='button' id='addTower' value='Add Tower' />
+</div>
+</body>
 </html>

@@ -8,12 +8,12 @@
 .col {
     display: inline-block;
     border: 1px solid #000;
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
 }
 .spawn {
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
 }
 .spawn.creep {
     background: rgba(255,0,0,0.5);
@@ -30,8 +30,8 @@
 var Board;
 $(function() {
 
-    var boardNumRows = 20;
-    var boardNumCols = 10;
+    var boardNumRows = 30;
+    var boardNumCols = 13;
 
     $('body').append(function() {
         var board = "<div class='board'>";
@@ -64,35 +64,6 @@ $(function() {
         this.getCell().html("");
         this.cords = cords;
         this.getCell().html(this.getCellHtml());
-    };
-    spawn.prototype.findShortestPath = function(toCords) {
-        var openCells = {
-            cells: Board.getAllOpenCells(),
-            find: function(cords) {
-                for (var i = 0; i < this.cells.length; i++) {
-                    if (this.cells[i].cords.x == cords.x && this.cells[i].cords.y == cords.y) {
-                        return this.cells[i];
-                    }
-                }
-                return false;
-            }
-        };
-        openCells.find(this.cords).setParent().getAdjacentCords(openCells);
-        return openCells.find(toCords.cords);
-    };
-    spawn.prototype.findNextMove = function() {
-        var shortestPath = this.findShortestPath(Board.Bases[0]);
-        var prevParent;
-        while (shortestPath != null && shortestPath.parent != "home") {
-            prevParent = shortestPath;
-            shortestPath = shortestPath.parent;
-        }
-        if (shortestPath == null) {
-            return this.cords;
-        }
-        else {
-            return prevParent.cords;
-        }
     };
 
     var cell = function(cords) {
@@ -153,6 +124,14 @@ $(function() {
     var base = function() {spawn.apply(this, arguments);};
     base.prototype = new spawn();
     base.prototype.getClassName = function() {return "base";};
+
+    creep.prototype.findNextMove = function(shortestPaths) {
+        var shortestPath = shortestPaths.find(this.cords);
+        if (shortestPath && shortestPath.parent) {
+            return shortestPath.parent.cords;
+        }
+        return this.cords;
+    };
 
     Board = {
         Towers: [],
@@ -221,9 +200,30 @@ $(function() {
             }
             return openCells;
         },
+        setShortestPaths: function() {
+            this.openCells = {
+                cells: Board.getAllOpenCells(),
+                find: function(cords) {
+                    for (var i = 0; i < this.cells.length; i++) {
+                        if (this.cells[i].cords.x == cords.x && this.cells[i].cords.y == cords.y) {
+                            return this.cells[i];
+                        }
+                    }
+                    return false;
+                }
+            };
+            this.openCells.find(this.Bases[0].cords).setParent().getAdjacentCords(this.openCells);
+        },
+        getShortestPaths: function() {
+            if (this.openCells == null) {
+                this.setShortestPaths();
+            }
+            return this.openCells;
+        },
         doMove: function() {
+            var shortestPaths = this.getShortestPaths();
             for (var i = 0; i < this.Creeps.length; i++) {
-                var nextMove = this.Creeps[i].findNextMove();
+                var nextMove = this.Creeps[i].findNextMove(shortestPaths);
                 if (!(nextMove.x == Board.Bases[0].cords.x && nextMove.y == Board.Bases[0].cords.y)) {
                     if (!this.checkIsCreep(nextMove)) {
                         this.Creeps[i].setPosition(nextMove);
@@ -237,7 +237,7 @@ $(function() {
         }
     };
 
-    Board.addBase({x:5, y: 20});
+    Board.addBase({x:7, y: 30});
 
     Board.addTower({x:1, y:10});
     Board.addTower({x:2, y:10});
@@ -247,15 +247,8 @@ $(function() {
     Board.addTower({x:6, y:10});
     Board.addTower({x:7, y:10});
     Board.addTower({x:8, y:10});
-
-    Board.addTower({x:1, y:14});
-    Board.addTower({x:2, y:14});
-    Board.addTower({x:3, y:14});
-    Board.addTower({x:4, y:14});
-    Board.addTower({x:5, y:14});
-    Board.addTower({x:6, y:14});
-    Board.addTower({x:7, y:14});
-    Board.addTower({x:8, y:14});
+    Board.addTower({x:9, y:10});
+    Board.addTower({x:10, y:10});
 
     Board.addTower({x:3, y:12});
     Board.addTower({x:4, y:12});
@@ -265,6 +258,20 @@ $(function() {
     Board.addTower({x:8, y:12});
     Board.addTower({x:9, y:12});
     Board.addTower({x:10, y:12});
+    Board.addTower({x:11, y:12});
+    Board.addTower({x:12, y:12});
+    Board.addTower({x:13, y:12});
+
+    Board.addTower({x:1, y:14});
+    Board.addTower({x:2, y:14});
+    Board.addTower({x:3, y:14});
+    Board.addTower({x:4, y:14});
+    Board.addTower({x:5, y:14});
+    Board.addTower({x:6, y:14});
+    Board.addTower({x:7, y:14});
+    Board.addTower({x:8, y:14});
+    Board.addTower({x:9, y:14});
+    Board.addTower({x:10, y:14});
 
     Board.addCreep({x:4, y:1});
     Board.addCreep({x:5, y:1});
@@ -275,7 +282,7 @@ $(function() {
     Board.addCreep({x:6, y:2});
     Board.addCreep({x:7, y:2});
 
-    setInterval(function() {Board.doMove();}, 1000);
+    setInterval(function() {Board.doMove();}, 500);
 
 });
 </script>

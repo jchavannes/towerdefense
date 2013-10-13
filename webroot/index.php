@@ -80,7 +80,6 @@ $(function() {
             var currentDistance = this.getDistance();
             if (currentDistance == null || distance < currentDistance) {
                 this.parent = parent;
-                this.getAdjacentCords(openCells);
             }
         }
         return this;
@@ -125,6 +124,10 @@ $(function() {
     base.prototype = new spawn();
     base.prototype.getClassName = function() {return "base";};
 
+    var spawnPoint = function() {spawn.apply(this, arguments);};
+    spawnPoint.prototype = new spawn();
+    spawnPoint.prototype.getClassName = function() {return "spawnPoint";};
+
     creep.prototype.findNextMove = function(shortestPaths) {
         var shortestPath = shortestPaths.find(this.cords);
         if (shortestPath && shortestPath.parent) {
@@ -137,6 +140,7 @@ $(function() {
         Towers: [],
         Creeps: [],
         Bases: [],
+        SpawnPoints: [],
         addTower: function(cords) {
             if (!this.checkCellEmpty(cords)) {
                 return false;
@@ -158,6 +162,13 @@ $(function() {
             this.Bases.push(new base(cords));
             return true;
         },
+        addSpawnPoint: function(cords) {
+            if (!this.checkCellEmpty(cords)) {
+                return false;
+            }
+            this.SpawnPoints.push(new spawnPoint(cords));
+            return true;
+        },
         checkCellEmpty: function(cords) {
             var cells = this.getAllUsedCells();
             if (cords.x <= 0 || cords.y <= 0 || cords.x > boardNumCols || cords.y > boardNumRows) {
@@ -173,6 +184,14 @@ $(function() {
         checkIsCreep: function(cords) {
             for (i = 0; i < this.Creeps.length; i++) {
                 if (cords.x == this.Creeps[i].cords.x && cords.y == this.Creeps[i].cords.y) {
+                    return true;
+                }
+            }
+            return false;
+        },
+        checkIsBase: function(cords) {
+            for (i = 0; i < this.Bases.length; i++) {
+                if (cords.x == this.Bases[i].cords.x && cords.y == this.Bases[i].cords.y) {
                     return true;
                 }
             }
@@ -200,43 +219,68 @@ $(function() {
             }
             return openCells;
         },
-        setShortestPaths: function() {
-            this.openCells = {
-                cells: Board.getAllOpenCells(),
-                find: function(cords) {
-                    for (var i = 0; i < this.cells.length; i++) {
-                        if (this.cells[i].cords.x == cords.x && this.cells[i].cords.y == cords.y) {
-                            return this.cells[i];
-                        }
+        initShortestPaths: function() {
+
+        },
+        openCells: {
+            cells: [],
+            find: function(cords) {
+                for (var i = 0; i < this.cells.length; i++) {
+                    if (this.cells[i].cords.x == cords.x && this.cells[i].cords.y == cords.y) {
+                        return this.cells[i];
                     }
-                    return false;
                 }
-            };
-            this.openCells.find(this.Bases[0].cords).setParent().getAdjacentCords(this.openCells);
+                return false;
+            }
+        },
+        setShortestPaths: function() {
+            this.openCells.cells = Board.getAllOpenCells();
+            var i;
+            for (i = 0; i < this.Bases.length; i++) {
+                this.openCells.find(this.Bases[i].cords).setParent();
+            }
+            for (var startObj = 0, endObj = 1; startObj != endObj; startObj = endObj, endObj = JSON.stringify(this.openCells)) {
+                for (i = 0; i < this.openCells.cells.length; i++) {
+                    this.openCells.cells[i].getAdjacentCords(this.openCells);
+                }
+            }
+            for (i = 0; i < this.openCells.cells.length; i++) {
+                if (this.openCells.cells[i].parent == null) {
+                    alert("Error! Unable to find path.");
+                    return;
+                }
+            }
         },
         getShortestPaths: function() {
-            if (this.openCells == null) {
-                this.setShortestPaths();
-            }
             return this.openCells;
         },
+        creepsRemaining: 20,
         doMove: function() {
-            var shortestPaths = this.getShortestPaths();
-            for (var i = 0; i < this.Creeps.length; i++) {
+            var shortestPaths = this.getShortestPaths(), i;
+            for (i = 0; i < this.Creeps.length; i++) {
                 var nextMove = this.Creeps[i].findNextMove(shortestPaths);
-                if (!(nextMove.x == Board.Bases[0].cords.x && nextMove.y == Board.Bases[0].cords.y)) {
+                if (this.checkIsBase(nextMove)) {
+                    this.Creeps[i].getCell().html("");
+                    this.Creeps.splice(i--,1);
+                }
+                else {
                     if (!this.checkIsCreep(nextMove)) {
                         this.Creeps[i].setPosition(nextMove);
                     }
                 }
-                else {
-                    this.Creeps[i].getCell().html("");
-                    this.Creeps.splice(i,1);
+            }
+            if (this.creepsRemaining > 0) {
+                for (i = 0; i < this.SpawnPoints.length; i++) {
+                    if (!this.checkIsCreep(this.SpawnPoints[i].cords)) {
+                        Board.addCreep(this.SpawnPoints[i].cords);
+                        this.creepsRemaining--;
+                    }
                 }
             }
         }
     };
 
+    Board.addSpawnPoint({x:7, y: 1});
     Board.addBase({x:7, y: 30});
 
     Board.addTower({x:1, y:10});
@@ -249,6 +293,7 @@ $(function() {
     Board.addTower({x:8, y:10});
     Board.addTower({x:9, y:10});
     Board.addTower({x:10, y:10});
+    Board.addTower({x:11, y:10});
 
     Board.addTower({x:3, y:12});
     Board.addTower({x:4, y:12});
@@ -272,17 +317,12 @@ $(function() {
     Board.addTower({x:8, y:14});
     Board.addTower({x:9, y:14});
     Board.addTower({x:10, y:14});
+    Board.addTower({x:11, y:14});
 
-    Board.addCreep({x:4, y:1});
-    Board.addCreep({x:5, y:1});
-    Board.addCreep({x:6, y:1});
-    Board.addCreep({x:7, y:1});
-    Board.addCreep({x:4, y:2});
-    Board.addCreep({x:5, y:2});
-    Board.addCreep({x:6, y:2});
-    Board.addCreep({x:7, y:2});
 
-    setInterval(function() {Board.doMove();}, 500);
+    Board.setShortestPaths();
+
+    setInterval(function() {Board.doMove();}, 50);
 
 });
 </script>

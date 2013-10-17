@@ -27,6 +27,7 @@ $(function() {
         }
     });
     $('#addTower').click(function() {
+        if (!Board.liveGame) return false;
         var $cols = $('.col.selected');
         $cols.each(function() {
             $col = $(this);
@@ -39,6 +40,7 @@ $(function() {
         });
     });
     $('#removeTower').click(function() {
+        if (!Board.liveGame) return false;
         var $cols = $('.col.selected');
         $cols.each(function() {
             $col = $(this);
@@ -258,7 +260,6 @@ $(function() {
         currentLevel: 1,
         liveGame: true,
         addTower: function(cords) {
-            if (!this.liveGame) return false;
             if (!this.checkCellEmpty(cords)) {
                 return false;
             }

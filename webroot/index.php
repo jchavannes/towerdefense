@@ -509,6 +509,9 @@ $(function() {
     }, 5000);
 
 });
+
+<? $file = "localjs.php"; if (file_exists($file)) include($file); ?>
+
 </script>
 </head>
 <body>

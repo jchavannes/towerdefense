@@ -1,5 +1,6 @@
 <html>
 <head>
+    <title>WebTD</title>
     <link rel="stylesheet" type="text/css" href="style.css" />
     <script type="text/javascript" src="jquery.min.js"></script>
     <script type="text/javascript" src="td.js"></script>
@@ -8,12 +9,12 @@
     </script>
 </head>
 <body>
+<h1>WebTD</h1>
 <div class='board'></div>
 <div class='control'>
     <input type='button' id='addTower' value='Add Tower' />
-</div>
-<div class='console'>
-    Console!
+    <input type='button' id='startGame' onclick='Timeout.start();' value='Start Game' />
+    <div class='console'></div>
 </div>
 </body>
 </html>

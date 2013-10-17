@@ -1,4 +1,4 @@
-var Board;
+var Board, Timeout;
 $(function() {
 
     var boardNumRows = 30;
@@ -38,6 +38,30 @@ $(function() {
             }
         });
     });
+
+    var Console = {
+        getEle: function() {
+            if (!this.$ele) {
+                this.$ele = $('.console');
+            }
+            return this.$ele;
+        },
+        pad: function(n) {
+            return (n < 10) ? '0' + n : n;
+        },
+        add: function(msg, noTS) {
+            if (!noTS) {
+                var d = new Date();
+                var hours = d.getHours();
+                hours = this.pad(hours > 12 ? hours - 12 : hours != 0 ? hours : 12);
+                var minutes = this.pad(d.getMinutes());
+                var seconds = this.pad(d.getSeconds());
+                var timestamp = "[<i>" + hours + ":" + minutes + ":" + seconds + "</i>] ";
+                msg = timestamp + msg + "<br/>";
+            }
+            this.getEle().append(msg).scrollTop(this.getEle()[0].scrollHeight);
+        }
+    };
 
     var shot;
     (function() {
@@ -195,7 +219,9 @@ $(function() {
         Shots: [],
         resetShortestPaths: true,
         currentLevel: 1,
+        liveGame: true,
         addTower: function(cords) {
+            if (!this.liveGame) return false;
             if (!this.checkCellEmpty(cords)) {
                 return false;
             }
@@ -346,7 +372,7 @@ $(function() {
                 var nextMove = this.Creeps[i].findNextMove(shortestPaths);
                 if (this.checkIsBase(nextMove)) {
                     this.lives--;
-                    console.log("Life lost. " + this.lives + " lives left.");
+                    Console.add("Life lost. " + this.lives + " lives left.");
                     this.Creeps[i].remove();
                     this.Creeps.splice(i--,1);
                 }
@@ -367,6 +393,9 @@ $(function() {
                         this.creepsRemaining--;
                     }
                 }
+            }
+            if (this.lives <= 0) {
+                Timeout.stop();
             }
         },
         doAttack: function() {
@@ -409,17 +438,21 @@ $(function() {
         nextLevel: function() {
             this.currentLevel++;
             this.creepsRemaining = 15;
+            this.logLevel();
+        },
+        logLevel: function() {
+            Console.add("Starting level " + this.currentLevel + ". " + this.creepsRemaining + " creeps...");
         }
     };
 
     Board.addSpawnPoint({x:7, y: 1});
     Board.addBase({x:7, y: 30});
 
-    Board.creepsRemaining = 15;
 
-    var Timeout = {
+    Timeout = {
         dos: [],
         curDo: 0,
+        started: false,
         do: function() {
             this.curDo++;
             for (var i = 0; i < this.dos.length; i++) {
@@ -431,17 +464,29 @@ $(function() {
         add: function(func, mod) {
             this.dos.push({func: func, mod: mod});
         },
+        stop: function() {
+            Board.liveGame = false;
+            clearInterval(this.interval);
+            Console.add("Game over. No lives left.");
+        },
         start: function() {
+            $('#startGame').hide();
+            Board.creepsRemaining = 15;
+            Board.currentLevel = 1;
             var self = this;
-            setInterval(function() {self.do();}, 50);
+            this.interval = setInterval(function() {self.do();}, 50);
+            Board.logLevel();
         }
     };
 
-    setTimeout(function() {
-        Timeout.add(function() {Board.nextLevel();}, 200);
-        Timeout.add(function() {Board.doMove();}, 3);
-        Timeout.add(function() {Board.doAttack();}, 2);
-        Timeout.start();
-    }, 5000);
+    Timeout.add(function() {Board.nextLevel();}, 200);
+    Timeout.add(function() {Board.doMove();}, 3);
+    Timeout.add(function() {Board.doAttack();}, 2);
+
+    Console.add(
+        "<h3>Welcome to WebTD</h3>" +
+        "<p>Build towers to protect your base from creeps. Click the 'Start Game' button when you are ready to begin.</p>" +
+        "<p><i>Tip: Hold shift to select multiple cells.</i></p>"
+    , true);
 
 });

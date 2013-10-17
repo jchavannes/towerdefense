@@ -1,3 +1,6 @@
+input[type=button] {
+    cursor: pointer;
+}
 .board {
     -moz-user-select: none;
     -khtml-user-select: none;
@@ -10,7 +13,17 @@
 }
 .control {
     display: inline-block;
-    vertical-align: top;
+    vertical-align: bottom;
+}
+.console {
+    border: 1px solid rgba(0,0,0,0.5);
+    border-radius: 5px;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+    width: 350px;
+    height: 500px;
+    margin: 5px;
+    padding: 5px;
+    overflow-y: scroll;
 }
 .col {
     display: inline-block;

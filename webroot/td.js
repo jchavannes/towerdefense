@@ -38,6 +38,21 @@ $(function() {
             }
         });
     });
+    $('#removeTower').click(function() {
+        var $cols = $('.col.selected');
+        $cols.each(function() {
+            $col = $(this);
+            var rowId = $('.row').index($col.parents('.row'));
+            var colId = $('.col').index($col) - (rowId * boardNumCols);
+            var cords = {x:colId + 1, y:rowId + 1};
+            for (var i = 0; i < Board.Towers.length; i++) {
+                if (cords.x == Board.Towers[i].cords.x && cords.y == Board.Towers[i].cords.y) {
+                    Board.Towers[i].remove();
+                    Board.Towers.splice(i--, 1);
+                }
+            }
+        });
+    });
 
     var Console = {
         getEle: function() {

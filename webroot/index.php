@@ -13,6 +13,7 @@
 <div class='board'></div>
 <div class='control'>
     <input type='button' id='addTower' value='Add Tower' />
+    <input type='button' id='removeTower' value='Remove Tower' />
     <input type='button' id='startGame' onclick='Timeout.start();' value='Start Game' />
     <div class='console'></div>
 </div>

@@ -281,6 +281,7 @@ function addTowers() {
 }
 
 $(function() {
+    return;
     $('.control').append("<input type='button' onclick='addTowers();' value='Add Towers' />");
 });
 

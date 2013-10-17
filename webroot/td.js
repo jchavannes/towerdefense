@@ -441,6 +441,9 @@ $(function() {
             this.logLevel();
         },
         logLevel: function() {
+            if (this.currentLevel % 100 == 0) {
+                Console.add("Congratulations! You made it to level " + this.currentLevel + "!");
+            }
             Console.add("Starting level " + this.currentLevel + ". " + this.creepsRemaining + " creeps...");
         }
     };

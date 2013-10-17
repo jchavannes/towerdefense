@@ -107,18 +107,12 @@ $(function() {
     (function() {
         var shotId = 0;
         shot = function(startCords, endCords) {
-            this.currentCords = {
-                x: startCords.x,
-                y: startCords.y
-            };
-            this.endCords = {
-                x: endCords.x,
-                y: endCords.y
-            };
-            shotId++;
             $('.board').append("<div class='shot' id='shot" + shotId + "'>o</div>");
-            this.element = $('#shot' + shotId);
+            this.element = $('#shot' + shotId++);
+            this.currentCords = startCords;
             this.setPosition(true);
+            this.currentCords = endCords;
+            this.setPosition();
         };
         shot.prototype.convertToPos = function(cords) {
             var cellSize = 25;
@@ -130,29 +124,10 @@ $(function() {
         shot.prototype.setPosition = function(noAnimate) {
             var time = noAnimate ? 0 : 500;
             var pos = this.convertToPos(this.currentCords);
-            this.element.stop(true,false).animate({
-                top: pos.top,
-                left: pos.left
-            }, time, "linear");
-        };
-        shot.prototype.move = function() {
-            var maxMove = 5;
-            var distance = Board.calcDistance(this.currentCords, this.endCords);
-            if (distance < 1) {
-                this.element.remove();
-                return false;
-            }
-            var percent = maxMove / distance;
-            var distanceX = this.endCords.x - this.currentCords.x;
-            var distanceY = this.endCords.y - this.currentCords.y;
-            if (percent < 1  && percent > 0) {
-                distanceX *= percent;
-                distanceY *= percent;
-            }
-            this.currentCords.x += distanceX;
-            this.currentCords.y += distanceY;
-            this.setPosition();
-            return true;
+            var $ele = this.element;
+            $ele.stop(true,false).animate({top:pos.top, left:pos.left}, time, "linear", function() {
+                if (!noAnimate) $ele.remove();
+            });
         };
     })();
 
@@ -416,7 +391,6 @@ $(function() {
             }
             for (i = 0; i < this.openCells.cells.length; i++) {
                 if (this.openCells.cells[i].parent == null) {
-                    alert("Error! Unable to find path.");
                     return;
                 }
             }
@@ -462,7 +436,9 @@ $(function() {
         doAttack: function() {
             var i, g, toAttack, toAttackArray, distance;
             var maxDistance = 5;
+            var randAdd = parseInt(Math.random() * 10);
             for (i = 0; i < this.Towers.length; i++) {
+                if ((i + randAdd) % 10 != 0) continue;
                 toAttackArray = [];
                 for (g = 0; g < this.Creeps.length; g++) {
                     distance = this.calcDistance(this.Towers[i].cords, this.Creeps[g].cords);
@@ -487,14 +463,7 @@ $(function() {
             }
         },
         addShot: function(startCords, endCords) {
-            this.Shots.push(new shot(startCords, endCords));
-        },
-        moveShots: function() {
-            for (var i = 0; i < this.Shots.length; i++) {
-                if (!this.Shots[i].move()) {
-                    this.Shots.splice(i--,1);
-                }
-            }
+            new shot(startCords, endCords);
         },
         calcDistance: function(cords1, cords2) {
             var distanceX = Math.abs(cords1.x - cords2.x);
@@ -511,10 +480,33 @@ $(function() {
     Board.addBase({x:7, y: 30});
 
     Board.creepsRemaining = 15;
-    setInterval(function() {Board.nextLevel();}, 10000);
-    setInterval(function() {Board.doMove();}, 400);
-    setInterval(function() {Board.doAttack();}, 1000);
-    setInterval(function() {Board.moveShots();}, 500);
+
+    var Timeout = {
+        dos: [],
+        curDo: 0,
+        do: function() {
+            this.curDo++;
+            for (var i = 0; i < this.dos.length; i++) {
+                if (this.curDo % this.dos[i].mod == 0) {
+                    this.dos[i].func();
+                }
+            }
+        },
+        add: function(func, mod) {
+            this.dos.push({func: func, mod: mod});
+        },
+        start: function() {
+            var self = this;
+            setInterval(function() {self.do();}, 50);
+        }
+    };
+
+    setTimeout(function() {
+        Timeout.add(function() {Board.nextLevel();}, 200);
+        Timeout.add(function() {Board.doMove();}, 3);
+        Timeout.add(function() {Board.doAttack();}, 2);
+        Timeout.start();
+    }, 5000);
 
 });
 </script>

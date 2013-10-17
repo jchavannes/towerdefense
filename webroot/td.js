@@ -98,9 +98,13 @@ $(function() {
         }
     };
     spawn.prototype.getCell = function() {
-        var colNum = this.cords.x - 1;
-        var rowNum = this.cords.y - 1;
-        return $('.row:eq(' + rowNum + ') .col:eq(' + colNum + ')');
+        return Board.allCells.find(this.cords).getEle();
+        if (this.$ele == null) {
+            var colNum = this.cords.x - 1;
+            var rowNum = this.cords.y - 1;
+            this.$ele = $('.row:eq(' + rowNum + ') .col:eq(' + colNum + ')');
+        }
+        return this.$ele;
     };
     spawn.prototype.getCellHtml = function() {
         return "<div class='spawn " + this.getClassName() + "'>" + this.getCellText() + "</div>";
@@ -111,6 +115,7 @@ $(function() {
         var $cell = this.getCell();
         var hasSelected = false;
         $cell.html("");
+        this.checkForSpawnPoint();
         if ($cell.hasClass('selected')) {
             hasSelected = true;
             $cell.removeClass('selected');
@@ -127,8 +132,17 @@ $(function() {
     };
     spawn.prototype.remove = function() {
         var $cell = this.getCell();
-        $cell.html("");
         $cell.removeClass('selected');
+        $cell.html("");
+        this.checkForSpawnPoint();
+    };
+    spawn.prototype.checkForSpawnPoint = function() {
+        var $cell = this.getCell();
+        for (var i = 0; i < Board.SpawnPoints.length; i++) {
+            if (this.cords.x == Board.SpawnPoints[i].cords.x && this.cords.y == Board.SpawnPoints[i].cords.y) {
+                $cell.html(Board.SpawnPoints[i].getCellHtml());
+            }
+        }
     };
 
     var creep = function(cords, health) {
@@ -169,6 +183,14 @@ $(function() {
         this.cords = cords;
     };
     var count = 0;
+    cell.prototype.getEle = function() {
+        if (this.$ele == null) {
+            var colNum = this.cords.x - 1;
+            var rowNum = this.cords.y - 1;
+            this.$ele = $('.row:eq(' + rowNum + ') .col:eq(' + colNum + ')');
+        }
+        return this.$ele;
+    };
     cell.prototype.setParent = function(parent, openCells) {
         if (parent == null) {
             this.parent = "home";
@@ -314,6 +336,15 @@ $(function() {
             }
             return cells;
         },
+        getAllCells: function() {
+            var cells = [], x, y;
+            for (x = 1; x <= boardNumCols; x++) {
+                loop: for (y = 1; y <= boardNumRows; y++) {
+                    cells.push(new cell({x: x, y: y}));
+                }
+            }
+            return cells;
+        },
         getAllOpenCells: function() {
             var openCells = [], x, y;
             var usedCords = Board.getAllTowerCells();
@@ -328,6 +359,15 @@ $(function() {
                 }
             }
             return openCells;
+        },
+        allCells: {
+            cells: [],
+            find: function() {
+                if (this.cells.length == 0) {
+                    this.cells = Board.getAllCells();
+                }
+                return Board.openCells.find.apply(this, arguments);
+            }
         },
         openCells: {
             cells: [],
@@ -450,7 +490,6 @@ $(function() {
 
     Board.addSpawnPoint({x:7, y: 1});
     Board.addBase({x:7, y: 30});
-
 
     Timeout = {
         dos: [],

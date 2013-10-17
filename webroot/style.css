@@ -53,6 +53,9 @@ input[type=button] {
 .spawn.tower {
     background: rgba(0,0,255,0.5);
 }
+.spawn.spawnPoint {
+    background: rgba(255,0,0,0.15);
+}
 .spawn.base {
     background: rgba(0,255,0,0.5);
 }

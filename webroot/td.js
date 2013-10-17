@@ -47,7 +47,8 @@ $(function() {
             var cords = {x:colId + 1, y:rowId + 1};
             for (var i = 0; i < Board.Towers.length; i++) {
                 if (cords.x == Board.Towers[i].cords.x && cords.y == Board.Towers[i].cords.y) {
-                    Board.Towers[i].remove();
+                    Board.Towers[i].remove("");
+                    Board.resetShortestPaths = true;
                     Board.Towers.splice(i--, 1);
                 }
             }
@@ -147,7 +148,6 @@ $(function() {
     };
     spawn.prototype.remove = function() {
         var $cell = this.getCell();
-        $cell.removeClass('selected');
         $cell.html("");
         this.checkForSpawnPoint();
     };

@@ -1,4 +1,4 @@
-var Board, Timeout;
+var Board, Timeout, Console;
 $(function() {
 
     var boardNumRows = 30;
@@ -29,6 +29,14 @@ $(function() {
     $('#addTower').click(function() {
         if (!Board.liveGame) return false;
         var $cols = $('.col.selected');
+        var cost = $cols.length * 5;
+        if (cost > Board.gold) {
+            Console.add("Too many cells selected, need more gold.");
+            Console.flash();
+            return;
+        }
+        Board.gold -= cost;
+        Console.updateGold();
         $cols.each(function() {
             $col = $(this);
             var rowId = $('.row').index($col.parents('.row'));
@@ -57,7 +65,7 @@ $(function() {
         });
     });
 
-    var Console = {
+    Console = {
         getEle: function() {
             if (!this.$ele) {
                 this.$ele = $('.console');
@@ -78,6 +86,21 @@ $(function() {
                 msg = timestamp + msg + "<br/>";
             }
             this.getEle().append(msg).scrollTop(this.getEle()[0].scrollHeight);
+        },
+        updateGold: function() {
+            if (this.goldEle == null) {
+                this.goldEle = $('#gold');
+            }
+            this.goldEle.html(Board.gold);
+        },
+        flash: function() {
+            var $ele = this.getEle();
+            if (this.boxNormal == null) {
+                this.boxNormal = $ele.css("box-shadow");
+            }
+            var boxHighlight = "0px 0px 5px 15px rgba(255,255,0,0.5)";
+            var speed = 300;
+            this.getEle().stop(true,false).animate({boxShadow:boxHighlight}, speed).animate({boxShadow:this.boxNormal}, speed);
         }
     };
 
@@ -259,6 +282,7 @@ $(function() {
         resetShortestPaths: true,
         currentLevel: 1,
         liveGame: true,
+        gold: 50,
         addTower: function(cords) {
             if (!this.checkCellEmpty(cords)) {
                 return false;
@@ -435,6 +459,8 @@ $(function() {
                 else if (this.Creeps[i].health <= 0) {
                     this.Creeps[i].remove();
                     this.Creeps.splice(i--,1);
+                    this.gold += 1;
+                    Console.updateGold();
                 }
                 else {
                     if (!this.checkIsCreep(nextMove)) {
@@ -540,6 +566,7 @@ $(function() {
     Timeout.add(function() {Board.nextLevel();}, 200);
     Timeout.add(function() {Board.doMove();}, 3);
     Timeout.add(function() {Board.doAttack();}, 2);
+    Console.updateGold();
 
     Console.add(
         "<h3>Welcome to WebTD</h3>" +

@@ -26,10 +26,11 @@ $(function() {
             $(this).addClass('selected');
         }
     });
+    var towerGoldRatio = 5;
     $('#addTower').click(function() {
         if (!Board.liveGame) return false;
         var $cols = $('.col.selected');
-        var cost = $cols.length * 5;
+        var cost = $cols.length * towerGoldRatio;
         if (cost > Board.gold) {
             Console.add("Too many cells selected, need more gold.");
             Console.flash();
@@ -57,6 +58,8 @@ $(function() {
             var cords = {x:colId + 1, y:rowId + 1};
             for (var i = 0; i < Board.Towers.length; i++) {
                 if (cords.x == Board.Towers[i].cords.x && cords.y == Board.Towers[i].cords.y) {
+                    Board.gold += Board.Towers[i].level * towerGoldRatio;
+                    Console.updateGold();
                     Board.Towers[i].remove("");
                     Board.resetShortestPaths = true;
                     Board.Towers.splice(i--, 1);

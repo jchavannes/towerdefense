@@ -53,7 +53,12 @@ $(function() {
             }
         });
         if (cost > Board.gold) {
-            Console.add("Too many cells selected, need more gold.");
+            Console.add("Not enough gold.");
+            Console.flash();
+            return;
+        }
+        if (Board.checkIfBlocksPath(newTowers)) {
+            Console.add("Cannot block path.");
             Console.flash();
             return;
         }
@@ -383,6 +388,72 @@ $(function() {
             }
             return true;
         },
+        checkIfBlocksPath: function(cordArray) {
+            var openCells = this.getAllOpenCells();
+            var i, g, h;
+            for (i = 0; i < openCells.length; i++) {
+                for (g = 0; g < cordArray.length; g++) {
+                    if (openCells[i].cords.x == cordArray[g].x && openCells[i].cords.y == cordArray[g].y) {
+                        openCells.splice(i--,1);
+                    }
+                }
+            }
+            for (i = 0; i < this.SpawnPoints.length; i++) {
+                openCells.push(new cell(this.SpawnPoints[i].cords));
+            }
+            var getNeighbors = function(cords) {
+                var all = [
+                    {x:cords.x - 1, y:cords.y},
+                    {x:cords.x + 1, y:cords.y},
+                    {x:cords.x, y:cords.y - 1},
+                    {x:cords.x, y:cords.y + 1}
+                ];
+                for (var i = 0; i < all.length; i++) {
+                    if (all[i].x <= 0 || all[i].y <= 0 || all[i].x > boardNumCols || all[i].y > boardNumRows || !checkOpenCell(all[i])) {
+                        all.splice(i--,1);
+                    }
+                }
+                return all;
+            };
+            var checkCordsInArray = function(cordArray, cords) {
+                for (var i = 0; i < cordArray.length; i++) {
+                    if (cordArray[i].x == cords.x && cordArray[i].y == cords.y) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            var checkOpenCell = function(cords) {
+                for (i = 0; i < openCells.length; i++) {
+                    if (openCells[i].cords.x == cords.x && openCells[i].cords.y == cords.y) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            for (i = 0; i < this.Bases.length; i++) {
+                var checking = true;
+                var neighbors;
+                var connectedCords = [{
+                    x: this.Bases[i].cords.x,
+                    y: this.Bases[i].cords.y
+                }];
+                for (g = 0; g < connectedCords.length; g++) {
+                    neighbors = getNeighbors(connectedCords[g]);
+                    for (h = 0; h < neighbors.length; h++) {
+                        if (!checkCordsInArray(connectedCords, neighbors[h])) {
+                            connectedCords.push(neighbors[h]);
+                        }
+                    }
+                }
+            }
+            for (i = 0; i < this.SpawnPoints.length; i++) {
+                if (!checkCordsInArray(connectedCords, this.SpawnPoints[i].cords)) {
+                    return true;
+                }
+            }
+            return false;
+        },
         checkIsCreep: function(cords) {
             return this.findInGroup(this.Creeps, cords) !== false;
         },
@@ -391,6 +462,9 @@ $(function() {
         },
         checkIsTower: function(cords) {
             return this.findInGroup(this.Towers, cords) !== false;
+        },
+        checkIsSpawnPoint: function(cords) {
+            return this.findInGroup(this.SpawnPoints, cords) !== false;
         },
         getTower: function(cords) {
             var tower = this.findInGroup(this.Towers, cords);

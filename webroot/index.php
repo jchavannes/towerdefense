@@ -14,10 +14,14 @@
 <div class='board'></div>
 <div class='control'>
     Gold: <span id="gold">0</span><br/>
-    <input type='button' id='addTower' value='[+] Buy/Upgrade Tower' />
-    <input type='button' id='removeTower' value='[&ndash;] Sell Tower' />
+    <input type='button' id='addTower' value='[+] Buy/Upgrade Tower' /><br/>
+    <input type='button' id='removeTower' value='[&ndash;] Sell Tower' /><br/>
     <input type='button' id='startGame' onclick='Timeout.start();' value='[&darr;] Start Game' />
-    <div class='console'></div>
+    <div class='console'>
+        <h3>Welcome to WebTD &ndash;</h3>
+        <p>Build towers to protect your base from creeps. Click the 'Start Game' button when you are ready to begin.</p>
+        <p><i>Tip: Hold shift to select multiple cells.</i></p>
+    </div>
 </div>
 </body>
 </html>

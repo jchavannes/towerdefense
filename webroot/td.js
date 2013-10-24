@@ -25,17 +25,18 @@ $(function() {
         else {
             $(this).addClass('selected');
         }
+        Console.updateButtons();
     });
     var towerGoldRatio = 5;
     $('#addTower').click(function() {
-        if (!Board.liveGame) return false;
+        if (!Board.liveGame) return;
 
         var $cols = $('.cell.selected');
         var cost = 0;
         var newTowers = [];
         var upgradeTowers = [];
         $cols.each(function() {
-            $col = $(this);
+            var $col = $(this);
             var rowId = $('.row').index($col.parents('.row'));
             var colId = $('.cell').index($col) - (rowId * boardNumCols);
             var cords = {x:colId + 1, y:rowId + 1};
@@ -66,9 +67,10 @@ $(function() {
             upgradeTowers[i].level++;
             upgradeTowers[i].updateCellHtml();
         }
+        Console.updateButtons();
     });
     $('#removeTower').click(function() {
-        if (!Board.liveGame) return false;
+        if (!Board.liveGame) return;
         var $cols = $('.cell.selected');
         $cols.each(function() {
             $col = $(this);
@@ -85,6 +87,7 @@ $(function() {
                 }
             }
         });
+        Console.updateButtons();
     });
 
     Console = {
@@ -109,11 +112,35 @@ $(function() {
             }
             this.getEle().append(msg).scrollTop(this.getEle()[0].scrollHeight);
         },
+        updateButtons: function() {
+            if (this.buyButtonEle == null) {
+                this.buyButtonEle = $('#addTower');
+            }
+            if (this.sellButtonEle == null) {
+                this.sellButtonEle = $('#removeTower');
+            }
+            var buyUpgradeTotal = 0;
+            var sellTotal = 0;
+            $('.cell.selected').each(function() {
+                var cords = Board.findCellCords($(this));
+                if (Board.checkIsTower(cords)) {
+                    var level = Board.getTower(cords).level;
+                    buyUpgradeTotal += (level + 1) * towerGoldRatio;
+                    sellTotal += level * towerGoldRatio;
+                }
+                else if (Board.checkCellEmpty(cords)) {
+                    buyUpgradeTotal += towerGoldRatio;
+                }
+            });
+            this.buyButtonEle.val("[+] Buy/Upgrade Tower" + (buyUpgradeTotal > 0 ? " (" + buyUpgradeTotal + "g)" : ""));
+            var nDash = $('<div/>').html("&ndash;").text();
+            this.sellButtonEle.val("[" + nDash + "] Sell Tower" + (sellTotal > 0 ? " (" + sellTotal + "g)" : ""));
+        },
         updateGold: function() {
             if (this.goldEle == null) {
                 this.goldEle = $('#gold');
             }
-            this.goldEle.html(Board.gold);
+            this.goldEle.html(Board.gold + "g");
         },
         flash: function() {
             var $ele = this.getEle();
@@ -162,12 +189,6 @@ $(function() {
     };
     spawn.prototype.getCell = function() {
         return Board.allCells.find(this.cords).getEle();
-        if (this.$ele == null) {
-            var colNum = this.cords.x - 1;
-            var rowNum = this.cords.y - 1;
-            this.$ele = $('.row:eq(' + rowNum + ') .cell:eq(' + colNum + ')');
-        }
-        return this.$ele;
     };
     spawn.prototype.getCellHtml = function() {
         return "<div class='spawn " + this.getClassName() + "'>" + this.getCellText() + "</div>";
@@ -307,7 +328,7 @@ $(function() {
         resetShortestPaths: true,
         currentLevel: 1,
         liveGame: true,
-        gold: 50,
+        gold: 10 * towerGoldRatio,
         addTower: function(cords) {
             if (!this.checkCellEmpty(cords)) {
                 return false;
@@ -384,6 +405,11 @@ $(function() {
             }
             return false;
         },
+        findCellCords: function($ele) {
+            var rowId = $('.row').index($ele.parents('.row'));
+            var colId = $('.cell').index($ele) - (rowId * boardNumCols);
+            return {x:colId + 1, y:rowId + 1};
+        },
         getAllUsedCells: function() {
             var cells = [], i;
             for (i = 0; i < this.Towers.length; i++) {
@@ -410,7 +436,7 @@ $(function() {
         getAllCells: function() {
             var cells = [], x, y;
             for (x = 1; x <= boardNumCols; x++) {
-                loop: for (y = 1; y <= boardNumRows; y++) {
+                for (y = 1; y <= boardNumRows; y++) {
                     cells.push(new cell({x: x, y: y}));
                 }
             }
@@ -568,7 +594,7 @@ $(function() {
         dos: [],
         curDo: 0,
         started: false,
-        do: function() {
+        exec: function() {
             this.curDo++;
             for (var i = 0; i < this.dos.length; i++) {
                 if (this.curDo % this.dos[i].mod == 0) {
@@ -589,7 +615,7 @@ $(function() {
             Board.creepsRemaining = 15;
             Board.currentLevel = 1;
             var self = this;
-            this.interval = setInterval(function() {self.do();}, 50);
+            this.interval = setInterval(function() {self.exec();}, 50);
             Board.logLevel();
         }
     };
@@ -598,11 +624,5 @@ $(function() {
     Timeout.add(function() {Board.doMove();}, 3);
     Timeout.add(function() {Board.doAttack();}, 2);
     Console.updateGold();
-
-    Console.add(
-        "<h3>Welcome to WebTD</h3>" +
-        "<p>Build towers to protect your base from creeps. Click the 'Start Game' button when you are ready to begin.</p>" +
-        "<p><i>Tip: Hold shift to select multiple cells.</i></p>"
-    , true);
 
 });

@@ -14,7 +14,7 @@
 <div class='board'></div>
 <div class='control'>
     Gold: <span id="gold">0</span><br/>
-    <input type='button' id='addTower' value='[+] Buy Tower' />
+    <input type='button' id='addTower' value='[+] Buy/Upgrade Tower' />
     <input type='button' id='removeTower' value='[&ndash;] Sell Tower' />
     <input type='button' id='startGame' onclick='Timeout.start();' value='[&darr;] Start Game' />
     <div class='console'></div>

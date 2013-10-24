@@ -25,7 +25,7 @@ input[type=button] {
     padding: 5px;
     overflow-y: scroll;
 }
-.col {
+.cell {
     display: inline-block;
     position: relative;
     border: 1px solid #000;
@@ -33,7 +33,7 @@ input[type=button] {
     height: 25px;
     cursor: pointer;
 }
-.col.selected {
+.cell.selected {
     border-color: rgba(255,255,0,1);
     color: rgba(255,255,0,1);
 }

@@ -9,15 +9,15 @@ $(function() {
         for (var rowNum = 1; rowNum <= boardNumRows; rowNum++) {
             board += "<div class='row'>";
             for (var colNum = 1; colNum <= boardNumCols; colNum++) {
-                board += "<div class='col'></div>";
+                board += "<div class='cell'></div>";
             }
             board += "</div>";
         }
         return board;
     });
-    $('.col').click(function(e) {
+    $('.cell').click(function(e) {
         if (!e.shiftKey) {
-            $('.col').removeClass('selected');
+            $('.cell').removeClass('selected');
         }
         if ($(this).hasClass('selected')) {
             $(this).removeClass('selected');
@@ -29,8 +29,28 @@ $(function() {
     var towerGoldRatio = 5;
     $('#addTower').click(function() {
         if (!Board.liveGame) return false;
-        var $cols = $('.col.selected');
-        var cost = $cols.length * towerGoldRatio;
+
+        var $cols = $('.cell.selected');
+        var cost = 0;
+        var newTowers = [];
+        var upgradeTowers = [];
+        $cols.each(function() {
+            $col = $(this);
+            var rowId = $('.row').index($col.parents('.row'));
+            var colId = $('.cell').index($col) - (rowId * boardNumCols);
+            var cords = {x:colId + 1, y:rowId + 1};
+            if (Board.checkCellEmpty(cords)) {
+                cost += towerGoldRatio;
+                newTowers.push(cords);
+            }
+            else if (Board.checkIsTower(cords)) {
+                upgradeTower = Board.getTower(cords);
+                if (upgradeTower != null) {
+                    cost += (upgradeTower.level + 1) * towerGoldRatio;
+                    upgradeTowers.push(upgradeTower);
+                }
+            }
+        });
         if (cost > Board.gold) {
             Console.add("Too many cells selected, need more gold.");
             Console.flash();
@@ -38,23 +58,22 @@ $(function() {
         }
         Board.gold -= cost;
         Console.updateGold();
-        $cols.each(function() {
-            $col = $(this);
-            var rowId = $('.row').index($col.parents('.row'));
-            var colId = $('.col').index($col) - (rowId * boardNumCols);
-            var cords = {x:colId + 1, y:rowId + 1};
-            if (Board.checkCellEmpty(cords)) {
-                Board.addTower(cords);
-            }
-        });
+        var i;
+        for (i = 0; i < newTowers.length; i++) {
+            Board.addTower(newTowers[i]);
+        }
+        for (i = 0; i < upgradeTowers.length; i++) {
+            upgradeTowers[i].level++;
+            upgradeTowers[i].updateCellHtml();
+        }
     });
     $('#removeTower').click(function() {
         if (!Board.liveGame) return false;
-        var $cols = $('.col.selected');
+        var $cols = $('.cell.selected');
         $cols.each(function() {
             $col = $(this);
             var rowId = $('.row').index($col.parents('.row'));
-            var colId = $('.col').index($col) - (rowId * boardNumCols);
+            var colId = $('.cell').index($col) - (rowId * boardNumCols);
             var cords = {x:colId + 1, y:rowId + 1};
             for (var i = 0; i < Board.Towers.length; i++) {
                 if (cords.x == Board.Towers[i].cords.x && cords.y == Board.Towers[i].cords.y) {
@@ -138,7 +157,7 @@ $(function() {
     var spawn = function(cords) {
         if (cords != null) {
             this.cords = cords;
-            this.getCell().html(this.getCellHtml());
+            this.updateCellHtml();
         }
     };
     spawn.prototype.getCell = function() {
@@ -146,12 +165,15 @@ $(function() {
         if (this.$ele == null) {
             var colNum = this.cords.x - 1;
             var rowNum = this.cords.y - 1;
-            this.$ele = $('.row:eq(' + rowNum + ') .col:eq(' + colNum + ')');
+            this.$ele = $('.row:eq(' + rowNum + ') .cell:eq(' + colNum + ')');
         }
         return this.$ele;
     };
     spawn.prototype.getCellHtml = function() {
         return "<div class='spawn " + this.getClassName() + "'>" + this.getCellText() + "</div>";
+    };
+    spawn.prototype.updateCellHtml = function() {
+        this.getCell().html(this.getCellHtml());
     };
     spawn.prototype.getClassName = function() {return "spawn";};
     spawn.prototype.getCellText = function() {return "";};
@@ -166,7 +188,7 @@ $(function() {
         }
         this.cords = cords;
         $cell = this.getCell();
-        $cell.html(this.getCellHtml());
+        this.updateCellHtml();
         if ($cell.hasClass('selected')) {
             $cell.removeClass('selected');
         }
@@ -230,7 +252,7 @@ $(function() {
         if (this.$ele == null) {
             var colNum = this.cords.x - 1;
             var rowNum = this.cords.y - 1;
-            this.$ele = $('.row:eq(' + rowNum + ') .col:eq(' + colNum + ')');
+            this.$ele = $('.row:eq(' + rowNum + ') .cell:eq(' + colNum + ')');
         }
         return this.$ele;
     };
@@ -341,17 +363,23 @@ $(function() {
             return true;
         },
         checkIsCreep: function(cords) {
-            for (i = 0; i < this.Creeps.length; i++) {
-                if (cords.x == this.Creeps[i].cords.x && cords.y == this.Creeps[i].cords.y) {
-                    return true;
-                }
-            }
-            return false;
+            return this.findInGroup(this.Creeps, cords) !== false;
         },
         checkIsBase: function(cords) {
-            for (i = 0; i < this.Bases.length; i++) {
-                if (cords.x == this.Bases[i].cords.x && cords.y == this.Bases[i].cords.y) {
-                    return true;
+            return this.findInGroup(this.Bases, cords) !== false;
+        },
+        checkIsTower: function(cords) {
+            return this.findInGroup(this.Towers, cords) !== false;
+        },
+        getTower: function(cords) {
+            var tower = this.findInGroup(this.Towers, cords);
+            if (tower === false) return null;
+            return this.Towers[tower];
+        },
+        findInGroup: function(group, cords) {
+            for (i = 0; i < group.length; i++) {
+                if (cords.x == group[i].cords.x && cords.y == group[i].cords.y) {
+                    return i;
                 }
             }
             return false;

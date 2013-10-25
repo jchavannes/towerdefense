@@ -17,6 +17,7 @@
     <input type='button' id='addTower' value='[+] Buy/Upgrade Tower' /><br/>
     <input type='button' id='removeTower' value='[&ndash;] Sell Tower' /><br/>
     <input type='button' id='startGame' onclick='Timeout.start();' value='[&darr;] Start Game' />
+    <input type='button' id='pauseGame' onclick='Timeout.togglePause();' value='[=] Pause Game' /><br/>
     <div class='console'>
         <h3>Welcome to WebTD &ndash;</h3>
         <p>Build towers to protect your base from creeps. Click the 'Start Game' button when you are ready to begin.</p>

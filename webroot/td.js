@@ -668,7 +668,9 @@ $(function() {
         dos: [],
         curDo: 0,
         started: false,
+        paused: false,
         exec: function() {
+            if (this.paused) return;
             this.curDo++;
             for (var i = 0; i < this.dos.length; i++) {
                 if (this.curDo % this.dos[i].mod == 0) {
@@ -679,6 +681,14 @@ $(function() {
         add: function(func, mod) {
             this.dos.push({func: func, mod: mod});
         },
+        togglePause: function() {
+            this.paused = !this.paused;
+            if (this.pauseEle == null) {
+                this.pauseEle = $('#pauseGame');
+            }
+            var pauseText = this.paused ? "Unpause" : "Pause";
+            this.pauseEle.val("[=] " + pauseText + " Game");
+        },
         stop: function() {
             Board.liveGame = false;
             clearInterval(this.interval);
@@ -686,6 +696,7 @@ $(function() {
         },
         start: function() {
             $('#startGame').hide();
+            $('#pauseGame').show();
             Board.creepsRemaining = 15;
             Board.currentLevel = 1;
             var self = this;

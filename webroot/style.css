@@ -63,7 +63,7 @@ input[type=button] {
     background: rgba(0,255,0,0.5);
 }
 .shot {
-    pointer-events: none
+    pointer-events: none;
     font-family: monospace;
     font-weight: bold;
     font-size: 18px;
